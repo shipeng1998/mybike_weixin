@@ -27,7 +27,7 @@ Page({
     var phoneNum=this.data.phoneNum;
     //请求后台，发送一个验证码短信
     wx.request({
-      url: 'http://localhost:8080/mybike/genCode',
+      url: wx.getStorageSync('url')+'/genCode',
       //以表单方式传参到后台
       header:{'content-type':'application/x-www-form-urlencoded'},
       data:{
@@ -35,15 +35,59 @@ Page({
         phoneNum:phoneNum
       },
       method:'POST',
-      success:function(){
-        wx.showToast({
-          title: '验证码已发出',
-          icon:'success'
-        });
+      success:function(e){
+        if(e.data.code==1){
+          wx.showToast({
+            title: '验证码已发出',
+            icon:'success'
+          });
+
+        }
+     
       }
     });
 
 
+  },
+
+  formSubmit:function(e){
+        var phoneNum=e.detail.value.phoneNum;
+       
+        var verifyCode=e.detail.value.verifyCode;
+        var openId=wx.getStorageSync('openId');
+
+        wx.request({
+          url: wx.getStorageSync('url')+"/verify",
+          header: { 'content-type': 'application/x-www-form-urlencoded' },
+          data: {
+            phoneNum: phoneNum,
+            verifyCode: verifyCode,
+            status: 1,
+            openId: openId
+          },
+          method: "POST",
+          success: function (res) {
+            console.log("手机验证码校验结果:"+res);
+            if (res.data&& res.data.code==0) {
+              wx.showModal({          //模式对话框
+                title: '提示',
+                content: '注册用户失败,原因:'+ res.data.msg +'！',
+                showCancel: false
+              })
+              return;
+            }
+            var globalData = getApp().globalData
+            globalData.phoneNum = phoneNum     //在全局变量保存当前注册的号码
+    
+            getApp().globalData.status=1;
+            wx.setStorageSync('phoneNum', phoneNum);
+            wx.setStorageSync('status',1);
+            //到充值页
+             wx.navigateTo({
+                    url: '../deposit/deposit'
+              })  
+          }
+        });
   },
 
   /**
